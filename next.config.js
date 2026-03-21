@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@duffel/components"],
   reactStrictMode: false,
   experimental: {
     appDir: true,
@@ -28,6 +29,12 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "www.gstatic.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "assets.duffel.com",
         port: "",
         pathname: "/**",
       },

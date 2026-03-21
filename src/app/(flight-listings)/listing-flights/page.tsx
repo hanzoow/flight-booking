@@ -1,47 +1,30 @@
-import SectionHeroArchivePage from "@/app/(server-components)/SectionHeroArchivePage";
+import { Suspense } from "react";
+import ListingFlightsPageClient from "./ListingFlightsPageClient";
 import BgGlassmorphism from "@/components/BgGlassmorphism";
-import SectionSliderNewCategories from "@/components/SectionSliderNewCategories";
-import SectionSubscribe2 from "@/components/SectionSubscribe2";
-import React, { FC } from "react";
-import SectionGridFilterCard from "../SectionGridFilterCard";
+import BookingSteps from "@/components/booking/BookingSteps";
+import FlightListingsSkeleton from "@/components/booking/FlightListingsSkeleton";
+import React from "react";
 
-export interface ListingFlightsPageProps {}
-
-const ListingFlightsPage: FC<ListingFlightsPageProps> = ({}) => {
+function ListingFlightsPageFallback() {
   return (
-    <div className={`nc-ListingFlightsPage relative overflow-hidden `}>
+    <div className="nc-ListingFlightsPage relative overflow-hidden">
       <BgGlassmorphism />
-
       <div className="container relative">
-        {/* SECTION HERO */}
-        <SectionHeroArchivePage
-          currentPage="Flights"
-          currentTab="Flights"
-          listingType={
-            <>
-              <i className="text-2xl las la-plane-departure"></i>
-              <span className="ml-2.5">1599 flights</span>
-            </>
-          }
-          className="pt-10 pb-24 lg:pb-28 lg:pt-16 "
-        />
-
-        {/* SECTION */}
-        <SectionGridFilterCard className="pb-24 lg:pb-28" />
-
-        {/* SECTION 1 */}
-        <SectionSliderNewCategories
-          heading="Explore top destination ✈"
-          subHeading="Explore thousands of destinations around the world"
-          categoryCardType="card4"
-          itemPerRow={4}
-        />
-
-        {/* SECTION */}
-        <SectionSubscribe2 className="py-24 lg:py-28" />
+        <div className="space-y-4 pt-6 pb-4 lg:pt-8">
+          <div className="h-7 w-48 max-w-full animate-pulse rounded-lg bg-neutral-200/90 dark:bg-neutral-700/80" />
+          <div className="h-14 w-full max-w-4xl animate-pulse rounded-lg bg-neutral-200/90 dark:bg-neutral-700/80" />
+        </div>
+        <BookingSteps currentStepIndex={0} className="py-6" />
+        <FlightListingsSkeleton className="pb-16 pt-4 lg:pb-24" cardCount={5} />
       </div>
     </div>
   );
-};
+}
 
-export default ListingFlightsPage;
+export default function ListingFlightsPage() {
+  return (
+    <Suspense fallback={<ListingFlightsPageFallback />}>
+      <ListingFlightsPageClient />
+    </Suspense>
+  );
+}

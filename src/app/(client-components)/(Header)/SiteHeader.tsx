@@ -9,7 +9,6 @@ import { Popover, Transition } from "@headlessui/react";
 import { PathName } from "@/routers/types";
 import Link from "next/link";
 import Header from "./Header";
-import Header3 from "./Header3";
 import { usePathname } from "next/navigation";
 import { useThemeMode } from "@/utils/useThemeMode";
 
@@ -154,8 +153,6 @@ const SiteHeader = () => {
                       <div className="relative p-6">
                         <span className="text-xl font-semibold">Customize</span>
                         <div className="w-full border-b border-neutral-200 dark:border-neutral-700 mt-4"></div>
-                        {renderRadioHeaders()}
-                        {renderRadioHomePages()}
                       </div>
                     
                     </div>
@@ -179,11 +176,6 @@ const SiteHeader = () => {
     switch (headerSelected) {
       case "Header 1":
         return <Header className={headerClassName} navType="MainNav1" />;
-      case "Header 2":
-        return <Header className={headerClassName} navType="MainNav2" />;
-      case "Header 3":
-        return <Header3 className={headerClassName} />;
-
       default:
         return <Header className={headerClassName} navType="MainNav1" />;
     }
@@ -191,7 +183,6 @@ const SiteHeader = () => {
 
   return (
     <>
-      {renderControlSelections()}
       {renderHeader()}
       <div ref={anchorRef} className="h-1 absolute invisible"></div>
     </>

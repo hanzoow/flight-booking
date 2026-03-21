@@ -68,9 +68,6 @@ const HeroSearchFormSmall: FC<HeroSearchFormSmallProps> = ({
         return <ExperiencesSearchForm />;
       case "Cars":
         return <RentalCarSearchForm />;
-      case "Flights":
-        return <FlightSearchForm />;
-
       default:
         return null;
     }

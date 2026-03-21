@@ -125,6 +125,15 @@ const NavMobile: React.FC<NavMobileProps> = ({
         </span>
       </div>
       <ul className="flex flex-col py-6 px-2 space-y-1">
+        <li className="px-2 pb-2">
+          <Link
+            href="/my-bookings"
+            onClick={onClickClose}
+            className="flex w-full rounded-lg bg-primary-6000/10 px-4 py-3 text-sm font-semibold text-primary-700 hover:bg-primary-6000/15 dark:text-primary-300"
+          >
+            My Booking
+          </Link>
+        </li>
         {data.map(_renderItem)}
       </ul>
       <div className="flex items-center justify-between py-6 px-5">

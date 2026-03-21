@@ -1,12 +1,16 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import LocationInput from "../LocationInput";
 import GuestsInput from "../GuestsInput";
 import DatesRangeInput from "../DatesRangeInput";
 import { GuestsObject } from "../../type";
 import converSelectedDateToString from "@/utils/converSelectedDateToString";
 
-const FlightSearchForm = () => {
+export interface FlightSearchFormRef {
+  getSearchParams: () => URLSearchParams;
+}
+
+const FlightSearchForm = forwardRef<FlightSearchFormRef>((_, ref) => {
   //
   const [fieldNameShow, setFieldNameShow] = useState<
     "locationPickup" | "locationDropoff" | "dates" | "guests" | "general"
@@ -29,6 +33,23 @@ const FlightSearchForm = () => {
     guestChildren: 0,
     guestInfants: 0,
   });
+
+  useImperativeHandle(ref, () => ({
+    getSearchParams: () => {
+      const params = new URLSearchParams();
+      if (locationInputPickUp) params.set("from", locationInputPickUp);
+      if (locationInputDropOff) params.set("to", locationInputDropOff);
+      const tripType = dropOffLocationType === "One-way" ? "oneWay" : "roundTrip";
+      params.set("tripType", tripType);
+      if (flightClassState) params.set("class", flightClassState);
+      if (startDate) params.set("departDate", startDate.toISOString());
+      if (endDate && tripType !== "oneWay") params.set("returnDate", endDate.toISOString());
+      params.set("adults", String(guestInput.guestAdults || 1));
+      params.set("children", String(guestInput.guestChildren || 0));
+      params.set("infants", String(guestInput.guestInfants || 0));
+      return params;
+    },
+  }));
 
   const renderInputLocationPickup = () => {
     const isActive = fieldNameShow === "locationPickup";
@@ -254,17 +275,15 @@ const FlightSearchForm = () => {
     <div>
       <div className="w-full space-y-5">
         {renderInputLocationPickup()}
-        {/*  */}
         {renderInputLocationDropoff()}
-        {/*  */}
         {renderGenerals()}
-        {/*  */}
         {renderInputDates()}
-        {/*  */}
         {renderInputGuests()}
       </div>
     </div>
   );
-};
+});
+
+FlightSearchForm.displayName = "FlightSearchForm";
 
 export default FlightSearchForm;

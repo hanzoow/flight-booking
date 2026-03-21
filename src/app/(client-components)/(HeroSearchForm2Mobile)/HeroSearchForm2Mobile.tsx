@@ -1,19 +1,21 @@
 "use client";
 
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, Tab, Transition } from "@headlessui/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import ButtonSubmit from "./ButtonSubmit";
 import { useTimeoutFn } from "react-use";
-import StaySearchForm from "./(stay-search-form)/StaySearchForm";
-import CarsSearchForm from "./(car-search-form)/CarsSearchForm";
-import FlightSearchForm from "./(flight-search-form)/FlightSearchForm";
+import FlightSearchForm, {
+  FlightSearchFormRef,
+} from "./(flight-search-form)/FlightSearchForm";
 
 const HeroSearchForm2Mobile = () => {
+  const router = useRouter();
+  const flightFormRef = useRef<FlightSearchFormRef>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // FOR RESET ALL DATA WHEN CLICK CLEAR BUTTON
   const [showDialog, setShowDialog] = useState(false);
   let [, , resetIsShowingDialog] = useTimeoutFn(() => setShowDialog(true), 1);
   //
@@ -88,17 +90,16 @@ const HeroSearchForm2Mobile = () => {
                       </div>
 
                       <Tab.List className="pt-12 flex w-full justify-center font-semibold text-sm sm:text-base text-neutral-500 dark:text-neutral-400 space-x-6 sm:space-x-8">
-                        {["Stay", "Experiences", "Cars", "Flights"].map(
+                        {["Flights"].map(
                           (item, index) => (
                             <Tab key={index} as={Fragment}>
                               {({ selected }) => (
                                 <div className="relative focus:outline-none focus-visible:ring-0 outline-none select-none">
                                   <div
-                                    className={`${
-                                      selected
+                                    className={`${selected
                                         ? "text-black dark:text-white"
                                         : ""
-                                    }  `}
+                                      }  `}
                                   >
                                     {item}
                                   </div>
@@ -115,22 +116,7 @@ const HeroSearchForm2Mobile = () => {
                         <Tab.Panels className="flex-1 overflow-y-auto hiddenScrollbar py-4">
                           <Tab.Panel>
                             <div className="transition-opacity animate-[myblur_0.4s_ease-in-out]">
-                              <StaySearchForm />
-                            </div>
-                          </Tab.Panel>
-                          <Tab.Panel>
-                            <div className="transition-opacity animate-[myblur_0.4s_ease-in-out]">
-                              <StaySearchForm />
-                            </div>
-                          </Tab.Panel>
-                          <Tab.Panel>
-                            <div className="transition-opacity animate-[myblur_0.4s_ease-in-out]">
-                              <CarsSearchForm />
-                            </div>
-                          </Tab.Panel>
-                          <Tab.Panel>
-                            <div className="transition-opacity animate-[myblur_0.4s_ease-in-out]">
-                              <FlightSearchForm />
+                              <FlightSearchForm ref={flightFormRef} />
                             </div>
                           </Tab.Panel>
                         </Tab.Panels>
@@ -148,7 +134,10 @@ const HeroSearchForm2Mobile = () => {
                         </button>
                         <ButtonSubmit
                           onClick={() => {
+                            const params = flightFormRef.current?.getSearchParams();
                             closeModal();
+                            const url = `/listing-flights${params ? `?${params.toString()}` : ""}`;
+                            router.push(url as any);
                           }}
                         />
                       </div>
