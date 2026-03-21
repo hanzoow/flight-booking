@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel:login": "npx vercel@latest login",
+    "vercel:deploy": "npx vercel@latest deploy --prod --yes",
+    "vercel:preview": "npx vercel@latest deploy --yes"
   },
   "dependencies": {
     "@duffel/components": "^3.13.1",

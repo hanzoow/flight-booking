@@ -141,6 +141,56 @@ Ensure **`DUFFEL_ACCESS_TOKEN`** is set in the hosting environment for API route
 
 ---
 
+## Deploying to Vercel
+
+This app is a standard **Next.js** project; Vercel detects it automatically. No `vercel.json` is required unless you add custom headers or rewrites later.
+
+### 1. Push code to Git
+
+Use **GitHub**, **GitLab**, or **Bitbucket**. Vercel deploys from a Git branch (usually `main`).
+
+### 2. Import the project in Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign in.  
+2. **Add New… → Project** → import your repository.  
+3. **Framework Preset:** Next.js (auto-detected).  
+4. **Root Directory:** repository root (default).  
+5. **Build Command:** `npm run build` (default).  
+6. **Output:** handled by Next.js (no manual setting).
+
+### 3. Environment variables (required)
+
+In the project **Settings → Environment Variables**, add:
+
+| Name | Value | Environments |
+|------|--------|----------------|
+| `DUFFEL_ACCESS_TOKEN` | Your Duffel token (`duffel_test_…` or live) | Production, Preview, Development |
+
+Optional:
+
+| Name | Value |
+|------|--------|
+| `NEXT_PUBLIC_SHOW_DUFFEL_TEST_CARDS` | `false` to hide test-card hints in production UI |
+
+Redeploy after changing variables (**Deployments → … → Redeploy**).
+
+### 4. Deploy
+
+Click **Deploy**. The first build runs `npm install` and `next build`. Fix any build errors shown in the Vercel log (same as running `npm run build` locally).
+
+### 5. After deploy
+
+- Open the **`.vercel.app`** URL Vercel assigns.  
+- Test **`/listing-flights`** with a search; API routes call Duffel using the token from Vercel env (not from the browser).
+
+### Troubleshooting
+
+- **Build fails:** Run `npm run build` locally and fix TypeScript / import errors.  
+- **API returns 500 / “token not set”:** Confirm `DUFFEL_ACCESS_TOKEN` is set for **Production** (and **Preview** if you test PR previews).  
+- **Images from Duffel:** `assets.duffel.com` is already allowed in `next.config.js` → `images.remotePatterns`.
+
+---
+
 ## Original template
 
 This project started from **Chisfis** — a responsive Next.js booking/listing template (Tailwind, App Router–oriented stack).
