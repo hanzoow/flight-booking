@@ -167,7 +167,6 @@ const ListingFlightsPageClient: React.FC = () => {
         itemPerRow={4}
       />
 
-      <SectionSubscribe2 className="py-24 lg:py-28" />
     </FlightFlowPageShell>
   );
 };
