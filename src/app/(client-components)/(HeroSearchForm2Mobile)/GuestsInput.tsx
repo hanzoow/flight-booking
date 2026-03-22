@@ -21,9 +21,11 @@ const GuestsInput: FC<GuestsInputProps> = ({
   const [guestChildrenInputValue, setGuestChildrenInputValue] = useState(
     defaultValue?.guestChildren || 0
   );
-  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(
-    defaultValue?.guestInfants || 0
-  );
+  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(() => {
+    const a = defaultValue?.guestAdults ?? 0;
+    const i = defaultValue?.guestInfants ?? 0;
+    return Math.min(i, a);
+  });
 
   useEffect(() => {
     setGuestAdultsInputValue(defaultValue?.guestAdults || 0);
@@ -32,28 +34,41 @@ const GuestsInput: FC<GuestsInputProps> = ({
     setGuestChildrenInputValue(defaultValue?.guestChildren || 0);
   }, [defaultValue?.guestChildren]);
   useEffect(() => {
-    setGuestInfantsInputValue(defaultValue?.guestInfants || 0);
-  }, [defaultValue?.guestInfants]);
+    const a = defaultValue?.guestAdults ?? 0;
+    const i = defaultValue?.guestInfants ?? 0;
+    setGuestInfantsInputValue(Math.min(i, a));
+  }, [defaultValue?.guestInfants, defaultValue?.guestAdults]);
 
   const handleChangeData = (value: number, type: keyof GuestsObject) => {
-    let newValue = {
-      guestAdults: guestAdultsInputValue,
-      guestChildren: guestChildrenInputValue,
-      guestInfants: guestInfantsInputValue,
-    };
     if (type === "guestAdults") {
+      const nextInfants = Math.min(guestInfantsInputValue, value);
       setGuestAdultsInputValue(value);
-      newValue.guestAdults = value;
+      setGuestInfantsInputValue(nextInfants);
+      onChange?.({
+        guestAdults: value,
+        guestChildren: guestChildrenInputValue,
+        guestInfants: nextInfants,
+      });
+      return;
     }
     if (type === "guestChildren") {
       setGuestChildrenInputValue(value);
-      newValue.guestChildren = value;
+      onChange?.({
+        guestAdults: guestAdultsInputValue,
+        guestChildren: value,
+        guestInfants: guestInfantsInputValue,
+      });
+      return;
     }
     if (type === "guestInfants") {
-      setGuestInfantsInputValue(value);
-      newValue.guestInfants = value;
+      const capped = Math.min(value, guestAdultsInputValue, 20);
+      setGuestInfantsInputValue(capped);
+      onChange?.({
+        guestAdults: guestAdultsInputValue,
+        guestChildren: guestChildrenInputValue,
+        guestInfants: capped,
+      });
     }
-    onChange && onChange(newValue);
   };
 
   return (
@@ -82,9 +97,9 @@ const GuestsInput: FC<GuestsInputProps> = ({
         className="w-full mt-6"
         defaultValue={guestInfantsInputValue}
         onChange={(value) => handleChangeData(value, "guestInfants")}
-        max={20}
+        max={Math.min(20, guestAdultsInputValue)}
         label="Infants"
-        desc="Ages 0–2"
+        desc="Ages 0–2 (not more than adults)"
       />
     </div>
   );

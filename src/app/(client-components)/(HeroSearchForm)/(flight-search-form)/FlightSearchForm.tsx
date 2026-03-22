@@ -100,21 +100,32 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({
   const [guestChildrenInputValue, setGuestChildrenInputValue] = useState(
     initialValues?.children ?? 1
   );
-  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(
-    initialValues?.infants ?? 1
-  );
+  const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(() => {
+    const adults = initialValues?.adults ?? 2;
+    const infants = initialValues?.infants ?? 1;
+    return Math.min(infants, adults);
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChangeData = (value: number, type: keyof GuestsObject) => {
+    setErrors((prev) => {
+      const { guests, ...rest } = prev;
+      return rest;
+    });
     if (type === "guestAdults") {
       setGuestAdultsInputValue(value);
+      // Infants on lap: cannot exceed number of adults (IATA-style rule)
+      setGuestInfantsInputValue((prev) => Math.min(prev, value));
+      return;
     }
     if (type === "guestChildren") {
       setGuestChildrenInputValue(value);
+      return;
     }
     if (type === "guestInfants") {
-      setGuestInfantsInputValue(value);
+      const capped = Math.min(value, guestAdultsInputValue, 4);
+      setGuestInfantsInputValue(capped);
     }
   };
 
@@ -172,9 +183,9 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({
                   className="w-full mt-6"
                   defaultValue={guestInfantsInputValue}
                   onChange={(value) => handleChangeData(value, "guestInfants")}
-                  max={4}
+                  max={Math.min(4, guestAdultsInputValue)}
                   label="Infants"
-                  desc="Ages 0–2"
+                  desc="Ages 0–2 (not more than adults)"
                 />
               </Popover.Panel>
             </Transition>
@@ -273,6 +284,11 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({
         <div className="my-1 border border-neutral-300 dark:border-neutral-700 rounded-full">
           {renderGuest()}
         </div>
+        {errors.guests && (
+          <p className="w-full mt-2 px-1 text-xs text-red-500" role="alert">
+            {errors.guests}
+          </p>
+        )}
       </div>
     );
   };
@@ -286,6 +302,10 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({
     if (!startDate) newErrors.departDate = "Please select departure date";
     if (dropOffLocationType !== "oneWay" && !endDate) {
       newErrors.returnDate = "Please select return date";
+    }
+    if (guestInfantsInputValue > guestAdultsInputValue) {
+      newErrors.guests =
+        "Number of infants cannot be greater than number of adults";
     }
     return newErrors;
   };
