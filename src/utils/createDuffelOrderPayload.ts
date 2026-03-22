@@ -62,6 +62,10 @@ function normalizeCountryCode(raw: string): string {
     KOREA: "KR",
     SINGAPORE: "SG",
     THAILAND: "TH",
+    "UNITED ARAB EMIRATES": "AE",
+    UAE: "AE",
+    EMIRATES: "AE",
+    DUBAI: "AE",
   };
   if (map[s]) return map[s];
   const alpha = s.replace(/[^A-Z]/gi, "").toUpperCase();

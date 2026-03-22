@@ -18,6 +18,10 @@ import {
   getTravellerBadge,
   travellerBadgeClass,
 } from "@/utils/bookingPassenger";
+import {
+  getIso3166Alpha2SelectOptions,
+  isIso3166Alpha2,
+} from "@/utils/iso3166CountryOptions";
 import type { DuffelOrderRecord } from "@/api/models";
 import OrderConfirmationPanel from "@/components/booking/OrderConfirmationPanel";
 import { addSavedOrderId } from "@/utils/savedBookings";
@@ -58,11 +62,11 @@ const BOOKING_FORM_DEMO_AUTOFILL = true;
 
 const DEMO_CONTACT: ContactFieldState = {
   title: "mr",
-  given_name: "An",
-  family_name: "Nguyen",
+  given_name: "Ahmed",
+  family_name: "Al Mazrouei",
   email: "demo.booking@example.com",
-  phone: "+84901234567",
-  country: "VN",
+  phone: "+971501234567",
+  country: "AE",
 };
 
 export interface PassengerFieldState {
@@ -112,7 +116,7 @@ function emptyPassengerRow(p: OfferPassenger, offer: Offer): PassengerFieldState
     doc_type: "passport",
     doc_number: "",
     doc_issued: emptyTripDate(),
-    doc_issued_country: "",
+    doc_issued_country: "AE",
     doc_expires: emptyTripDate(),
     nationality: "",
   };
@@ -146,7 +150,7 @@ function buildInitialPassengerState(
         doc_type: "passport",
         doc_number: "",
         doc_issued: emptyTripDate(),
-        doc_issued_country: "",
+        doc_issued_country: "AE",
         doc_expires: emptyTripDate(),
         nationality: "",
       };
@@ -166,9 +170,9 @@ function buildInitialPassengerState(
         doc_type: "passport",
         doc_number: "V123998877",
         doc_issued: trip("2022", "05", "10"),
-        doc_issued_country: "VN",
+        doc_issued_country: "AE",
         doc_expires: trip("2027", "05", "10"),
-        nationality: "Vietnamese",
+        nationality: "United Arab Emirates",
       };
       continue;
     }
@@ -206,9 +210,9 @@ function buildInitialPassengerState(
       doc_type: "passport",
       doc_number: a.doc_number,
       doc_issued: trip("2020", "01", "15"),
-      doc_issued_country: "VN",
+      doc_issued_country: "AE",
       doc_expires: trip("2030", "01", "15"),
-      nationality: "Vietnamese",
+      nationality: "United Arab Emirates",
     };
   }
 
@@ -331,6 +335,7 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
   onCheckoutPhaseChange,
 }) => {
   const router = useRouter();
+  const iso3166Options = useMemo(() => getIso3166Alpha2SelectOptions(), []);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState<{
@@ -360,7 +365,7 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
           family_name: "",
           email: "",
           phone: "",
-          country: "VN",
+          country: "AE",
         }
   );
 
@@ -406,6 +411,9 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
     if (!contact.email.trim()) {
       return "Contact email is required.";
     }
+    if (!isIso3166Alpha2(contact.country)) {
+      return "Please select a contact country (ISO alpha-2).";
+    }
 
     const refUtc = getOfferDepartureUtcDate(offer) ?? new Date();
 
@@ -438,8 +446,8 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
         if (!tripDateToIso(s.doc_issued)) {
           return `${label}: please enter a complete document issued date.`;
         }
-        if (!s.doc_issued_country.trim()) {
-          return `${label}: document issuing country is required (e.g. VN).`;
+        if (!isIso3166Alpha2(s.doc_issued_country)) {
+          return `${label}: choose a document issuing country (ISO alpha-2).`;
         }
         if (!tripDateToIso(s.doc_expires)) {
           return `${label}: please enter a complete document expiry date.`;
@@ -669,7 +677,7 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
                   Phone
                 </span>
                 <Input
-                  placeholder="+84"
+                  placeholder="+971 …"
                   value={contact.phone}
                   onChange={(e) =>
                     setContact((c) => ({ ...c, phone: e.target.value }))
@@ -688,13 +696,12 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
                 setContact((c) => ({ ...c, country: e.target.value }))
               }
             >
-              <option value="VN">Vietnam (Việt Nam)</option>
-              <option value="US">United States</option>
-              <option value="GB">United Kingdom</option>
-              <option value="JP">Japan</option>
-              <option value="KR">South Korea</option>
-              <option value="SG">Singapore</option>
-              <option value="TH">Thailand</option>
+              <option value="">Select country</option>
+              {iso3166Options.map(({ code, name }) => (
+                <option key={code} value={code}>
+                  {name} ({code})
+                </option>
+              ))}
             </Select>
           </div>
         </div>
@@ -843,7 +850,7 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
                       Booking phone
                     </span>
                     <Input
-                      placeholder="+84"
+                      placeholder="+971 …"
                       value={contact.phone}
                       onChange={(e) =>
                         setContact((c) => ({ ...c, phone: e.target.value }))
@@ -909,15 +916,22 @@ const PassengerBookingForm: FC<PassengerBookingFormProps> = ({
                     <span className="mb-1.5 block text-xs font-medium text-neutral-600 dark:text-neutral-300">
                       Document Issued Country<span className="text-red-500">*</span>
                     </span>
-                    <Input
-                      placeholder="e.g. VN"
+                    <Select
                       value={state.doc_issued_country}
                       onChange={(e) =>
                         updatePassenger(p.id, {
                           doc_issued_country: e.target.value,
                         })
                       }
-                    />
+                      className="text-sm"
+                    >
+                      <option value="">Select country (ISO alpha-2)</option>
+                      {iso3166Options.map(({ code, name }) => (
+                        <option key={code} value={code}>
+                          {name} ({code})
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                   <div className="md:col-span-2">
                     <DateRow

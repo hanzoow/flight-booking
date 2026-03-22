@@ -109,7 +109,7 @@ const FlightCard: FC<FlightCardProps> = ({
           {label}
         </div>
         {slice.segments.map((seg, idx) => (
-          <div key={seg.id}>
+          <div key={seg.id}>  
             <div className="flex flex-col md:flex-row">
               <div className="w-24 md:w-20 lg:w-24 flex-shrink-0 md:pt-7">
                 <Image

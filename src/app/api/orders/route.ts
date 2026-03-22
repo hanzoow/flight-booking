@@ -21,7 +21,7 @@ function parseContact(raw: unknown): ClientOrderContactPayload | null {
   const family_name =
     typeof raw.family_name === "string" ? raw.family_name : "";
   const phone = typeof raw.phone === "string" ? raw.phone : "";
-  const country = typeof raw.country === "string" ? raw.country : "VN";
+  const country = typeof raw.country === "string" ? raw.country : "AE";
   if (!email.trim() || !given_name.trim() || !family_name.trim()) return null;
   return { title, given_name, family_name, email, phone, country };
 }
