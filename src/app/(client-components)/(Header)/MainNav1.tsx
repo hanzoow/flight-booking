@@ -23,7 +23,7 @@ const MainNav1: FC<MainNav1Props> = ({ className = "" }) => {
       <div className="relative px-4 lg:container">
         {/* Mobile & small screens: logo + My Booking + theme + menu */}
         <div className="flex h-20 items-center justify-between md:hidden">
-          <Logo className="w-24 shrink-0 self-center" />
+          <Logo className="w-44 shrink-0 self-center" />
           <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3">
             <Link href={MY_BOOKINGS_HREF} className={myBookingLinkClass}>
               My Booking
@@ -35,7 +35,7 @@ const MainNav1: FC<MainNav1Props> = ({ className = "" }) => {
 
         <div className="hidden h-20 items-center justify-between md:flex">
           <div className="flex min-w-0 flex-1 items-center justify-start space-x-4 sm:space-x-10">
-            <Logo className="w-24 shrink-0 self-center" />
+            <Logo className="w-44 shrink-0 self-center" />
           </div>
 
           <div className="flex shrink-0 items-center justify-end text-neutral-700 dark:text-neutral-100 lg:flex-none">

@@ -6,7 +6,11 @@ import type { DuffelOrderRecord } from "@/api/models";
 import { Route } from "@/routers/types";
 import BookingConfirmationPageView from "@/components/booking/BookingConfirmationPageView";
 import BookingSteps from "@/components/booking/BookingSteps";
-import BgGlassmorphism from "@/components/BgGlassmorphism";
+import {
+  FlightFlowPageShell,
+  FlowFeedbackCard,
+  FlowLoadingPanel,
+} from "@/components/layout";
 import DuffelCardPaymentStep from "@/components/booking/DuffelCardPaymentStep";
 import DuffelTestCardsDemoPanel from "@/components/booking/DuffelTestCardsDemoPanel";
 import { friendlyOrderErrorMessage } from "@/utils/offerPassengerDob";
@@ -198,57 +202,51 @@ const HoldPaymentClient: FC = () => {
   );
 
   return (
-    <div className="nc-HoldPaymentPage relative overflow-hidden">
-      <BgGlassmorphism />
-      <div className="container relative py-6 lg:py-10">
-        <BookingSteps currentStepIndex={2} className="mb-10" />
+    <FlightFlowPageShell
+      pageClassName="nc-HoldPaymentPage"
+      containerClassName="container relative py-6 lg:py-10"
+    >
+      <BookingSteps currentStepIndex={2} className="mb-10" />
 
-        {loading && (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
-            <i className="las la-spinner la-spin text-4xl text-primary-6000" />
-            <p className="mt-4 text-neutral-600 dark:text-neutral-300">
-              Loading confirmation…
-            </p>
-          </div>
-        )}
+      {loading && (
+        <FlowLoadingPanel message="Loading confirmation…" />
+      )}
 
-        {!loading && error && (
-          <div
-            className="rounded-2xl border border-red-200 bg-red-50 p-8 dark:border-red-900 dark:bg-red-950/35"
-            role="alert"
-          >
-            <p className="text-center text-sm font-semibold text-red-900 dark:text-red-100">
-              Something went wrong
-            </p>
-            <p className="mx-auto mt-3 max-w-lg text-center text-sm text-red-800 dark:text-red-200">
+      {!loading && error && (
+        <FlowFeedbackCard
+          variant="error"
+          title="Something went wrong"
+          description={
+            <p className="mx-auto max-w-lg text-center text-sm text-red-800 dark:text-red-200">
               {friendlyOrderErrorMessage(error)}
             </p>
-          </div>
+          }
+          role="alert"
+        />
+      )}
+
+      {!loading &&
+        !error &&
+        fullOrder &&
+        order?.type !== "instant" && (
+          <BookingConfirmationPageView
+            order={fullOrder}
+            paid={orderPaid}
+            payments={paymentsList}
+            showPayment={Boolean(showPayUi)}
+            showConfirmed={Boolean(showConfirmed)}
+            backHref={backHref}
+            backLabel="← Back to passenger details"
+          />
         )}
 
-        {!loading &&
-          !error &&
-          fullOrder &&
-          order?.type !== "instant" && (
-            <BookingConfirmationPageView
-              order={fullOrder}
-              paid={orderPaid}
-              payments={paymentsList}
-              showPayment={Boolean(showPayUi)}
-              showConfirmed={Boolean(showConfirmed)}
-              backHref={backHref}
-              backLabel="← Back to passenger details"
-            />
-          )}
-
-        {!loading && !error && order?.type === "instant" && !completeRef && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
-            This order was created as instant and is not waiting for payment on
-            this page.
-          </div>
-        )}
-      </div>
-    </div>
+      {!loading && !error && order?.type === "instant" && !completeRef && (
+        <FlowFeedbackCard
+          variant="warning"
+          title="This order was created as instant and is not waiting for payment on this page."
+        />
+      )}
+    </FlightFlowPageShell>
   );
 };
 

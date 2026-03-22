@@ -5,8 +5,12 @@ import { useSearchParams } from "next/navigation";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import type { DuffelOrderRecord } from "@/api/models";
 import { Route } from "@/routers/types";
-import BookingSteps from "@/components/booking/BookingSteps";
-import BgGlassmorphism from "@/components/BgGlassmorphism";
+import {
+  BookingFlowPageHeader,
+  FlightFlowPageShell,
+  FlowFeedbackCard,
+  FlowLoadingPanel,
+} from "@/components/layout";
 import OrderConfirmationPanel from "@/components/booking/OrderConfirmationPanel";
 import { friendlyOrderErrorMessage } from "@/utils/offerPassengerDob";
 import {
@@ -100,21 +104,18 @@ const MyBookingsClient: FC = () => {
   );
 
   return (
-    <div className="nc-MyBookingsPage relative overflow-hidden">
-      <BgGlassmorphism />
-      <div className="container relative py-6 lg:py-10">
-        <div className="mb-8">
-          <h1 className="mt-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            My Booking
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-500 dark:text-neutral-400">
-            Open a saved order from this device or paste a Duffel order id. Data
-            is loaded from Duffel via our API (same confirmation view as after
-            payment).
-          </p>
-        </div>
+    <FlightFlowPageShell
+      pageClassName="nc-MyBookingsPage"
+      containerClassName="container relative py-6 lg:py-10"
+    >
+      <BookingFlowPageHeader
+        backHref={"/listing-flights" as Route}
+        backLabel="← Back to search results"
+        title="My Booking"
+        description="Open a saved order from this device or paste a Duffel order id. Data is loaded from Duffel via our API (same confirmation view as after payment)."
+      />
 
-        <div className="grid gap-8 lg:grid-cols-12">
+      <div className="grid gap-8 lg:grid-cols-12">
           <aside className="space-y-6 lg:col-span-4">
             <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
               <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
@@ -204,29 +205,20 @@ const MyBookingsClient: FC = () => {
             )}
 
             {activeId && loading && (
-              <div className="rounded-2xl border border-neutral-200 bg-white p-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
-                <i className="las la-spinner la-spin text-4xl text-primary-6000" />
-                <p className="mt-4 text-neutral-600 dark:text-neutral-300">
-                  Loading order…
-                </p>
-              </div>
+              <FlowLoadingPanel message="Loading order…" />
             )}
 
             {activeId && !loading && error && (
-              <div
-                className="rounded-2xl border border-red-200 bg-red-50 p-8 dark:border-red-900 dark:bg-red-950/35"
+              <FlowFeedbackCard
+                variant="error"
+                title="Could not load order"
+                description={friendlyOrderErrorMessage(error)}
                 role="alert"
               >
-                <p className="text-center text-sm font-semibold text-red-900 dark:text-red-100">
-                  Could not load order
-                </p>
-                <p className="mx-auto mt-3 max-w-lg text-center text-sm text-red-800 dark:text-red-200">
-                  {friendlyOrderErrorMessage(error)}
-                </p>
                 <p className="mt-2 text-center text-xs text-red-700/80 dark:text-red-300/80">
                   <span className="font-mono">{activeId}</span>
                 </p>
-              </div>
+              </FlowFeedbackCard>
             )}
 
             {activeId && !loading && !error && order && (
@@ -247,8 +239,7 @@ const MyBookingsClient: FC = () => {
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </FlightFlowPageShell>
   );
 };
 

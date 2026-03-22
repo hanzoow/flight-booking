@@ -1,6 +1,6 @@
-import BgGlassmorphism from "@/components/BgGlassmorphism";
 import BookingSteps from "@/components/booking/BookingSteps";
 import FlightListingsSkeleton from "@/components/booking/FlightListingsSkeleton";
+import { FlightFlowPageShell } from "@/components/layout";
 import React from "react";
 
 function SummaryBarSkeleton() {
@@ -22,13 +22,10 @@ function SummaryBarSkeleton() {
 /** Shown by Next.js while the flight listing page (server fetch) is loading. */
 export default function ListingFlightsLoading() {
   return (
-    <div className="nc-ListingFlightsPage relative overflow-hidden">
-      <BgGlassmorphism />
-      <div className="container relative">
-        <SummaryBarSkeleton />
-        <BookingSteps currentStepIndex={0} className="py-6" />
-        <FlightListingsSkeleton className="pb-16 pt-4 lg:pb-24" cardCount={5} />
-      </div>
-    </div>
+    <FlightFlowPageShell pageClassName="nc-ListingFlightsPage">
+      <SummaryBarSkeleton />
+      <BookingSteps currentStepIndex={0} className="py-6" />
+      <FlightListingsSkeleton className="pb-16 pt-4 lg:pb-24" cardCount={5} />
+    </FlightFlowPageShell>
   );
 }
