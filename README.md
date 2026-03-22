@@ -1,14 +1,33 @@
 # Flight Booking (Duffel) — Easy GDS
 
-A **Next.js (App Router)** flight shopping and booking experience built on the **Chisfis** UI template, integrated with **Duffel** for offer requests, orders, payments (including 3D Secure card flows), and **@duffel/components** for card capture.
+A **Next.js (App Router)** flight shopping and booking experience built on the **Chisfis** UI template for boost speed up, integrated with **Duffel** for offer requests, orders, payments (including 3D Secure card flows), and **@duffel/components** for card capture.
+
+---
+
+## AI tools
+
+- **Cursor IDE** with the **Claude** model was used as the primary assistant during development.
+
+### How they were used
+
+- **Duffel documentation** was provided as context so the assistant could align **API shapes**, **order/payment flows**, **3D Secure**, and **`@duffel/components`** usage with official behaviour.
+- **Natural-language requests** drove implementation of features (e.g. hold vs instant orders, payment page split, confirmation layout, My Booking, URL param preservation).
+- **UI/UX prompts** asked for layouts that fit the existing **Chisfis / Tailwind** design system (e.g. confirmation page, skeletons, header links).
+
+### Where they helped most
+
+- **Implementing and wiring Duffel APIs** (offer requests, orders, payments, component client keys, error handling).
+- **Generating and refactoring reusable UI** (flight cards, filters, booking steps, confirmation panels, loading skeletons) while staying consistent with template tokens (`primary-6000`, `neutral`, dark mode).
+
+Human review was still applied for correctness, security (secrets only on server), and end-to-end flow testing.
 
 ---
 
 ## Table of contents
 
-1. [Architectural decisions](#architectural-decisions)  
-2. [Competitor analysis](#competitor-analysis)  
-3. [AI tools](#ai-tools)  
+1. [AI tools](#ai-tools)  
+2. [Architectural decisions](#architectural-decisions)  
+3. [Competitor analysis](#competitor-analysis)  
 4. [Setup instructions](#setup-instructions)  
 5. [Original template](#original-template)
 
@@ -67,25 +86,6 @@ Patterns observed on major OTAs (e.g. **Trip.com**, **Booking.com**, **AirAsia**
 - **Full airline filter matrix, baggage sliders, fare families grid** — placeholders or “coming soon” where Duffel data or time did not justify full parity.
 - **Aggressive upsell** (hotels, insurance bundles) — kept focus on **flight path** and template consistency.
 - **Proprietary maps / explore-everywhere** — not required for the core booking story.
-
----
-
-## AI tools
-
-- **Cursor IDE** with the **Claude** model was used as the primary assistant during development.
-
-### How they were used
-
-- **Duffel documentation** was provided as context so the assistant could align **API shapes**, **order/payment flows**, **3D Secure**, and **`@duffel/components`** usage with official behaviour.
-- **Natural-language requests** drove implementation of features (e.g. hold vs instant orders, payment page split, confirmation layout, My Booking, URL param preservation).
-- **UI/UX prompts** asked for layouts that fit the existing **Chisfis / Tailwind** design system (e.g. confirmation page, skeletons, header links).
-
-### Where they helped most
-
-- **Implementing and wiring Duffel APIs** (offer requests, orders, payments, component client keys, error handling).
-- **Generating and refactoring reusable UI** (flight cards, filters, booking steps, confirmation panels, loading skeletons) while staying consistent with template tokens (`primary-6000`, `neutral`, dark mode).
-
-Human review was still applied for correctness, security (secrets only on server), and end-to-end flow testing.
 
 ---
 
