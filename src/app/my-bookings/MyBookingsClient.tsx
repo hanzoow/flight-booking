@@ -108,13 +108,6 @@ const MyBookingsClient: FC = () => {
       pageClassName="nc-MyBookingsPage"
       containerClassName="container relative py-6 lg:py-10"
     >
-      <BookingFlowPageHeader
-        backHref={"/listing-flights" as Route}
-        backLabel="← Back to search results"
-        title="My Booking"
-        description="Open a saved order from this device or paste a Duffel order id. Data is loaded from Duffel via our API (same confirmation view as after payment)."
-      />
-
       <div className="grid gap-8 lg:grid-cols-12">
           <aside className="space-y-6 lg:col-span-4">
             <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
