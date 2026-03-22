@@ -107,19 +107,42 @@ npm install
 
 ### 2. Environment variables
 
-Create **`.env.local`** in the project root:
+**Local development**
+
+Copy the template and fill in your token:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit **`.env.local`**:
 
 ```env
 DUFFEL_ACCESS_TOKEN=duffel_test_xxxxxxxx
 ```
 
 - Use a **test** token from the Duffel dashboard for development.  
-- Never commit `.env.local` or expose this token in client-side code.
+- Never commit `.env.local` — it stays on your machine only.
 
-Optional (e.g. to hide demo test-card hints in production builds):
+Optional (e.g. to hide demo test-card hints):
 
 ```env
 NEXT_PUBLIC_SHOW_DUFFEL_TEST_CARDS=false
+```
+
+**Vercel (production / preview)**
+
+`.env.local` is **not** deployed (and must not be committed). Vercel injects variables at **runtime** for API routes.
+
+1. Open your project on [vercel.com](https://vercel.com) → **Settings** → **Environment Variables**.  
+2. Add **`DUFFEL_ACCESS_TOKEN`** with your token (mark as **Sensitive**).  
+3. Enable it for **Production** and **Preview** (and **Development** if you use `vercel dev`).  
+4. **Redeploy** the latest deployment so new env vars apply.
+
+After adding vars in the dashboard, you can pull them locally (optional):
+
+```bash
+npx vercel@latest env pull .env.local
 ```
 
 ### 3. Run the development server
