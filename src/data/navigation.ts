@@ -69,14 +69,6 @@ const demoChildMenus: NavItemType[] = [
   },
 ];
 
-const otherPageChildMenus: NavItemType[] = [
-  { id: ncNanoId(), href: "/blog", name: "Blog page" },
-  { id: ncNanoId(), href: "/blog/single" as Route, name: "Blog single" },
-  { id: ncNanoId(), href: "/about", name: "About" },
-  { id: ncNanoId(), href: "/contact", name: "Contact us" },
-  { id: ncNanoId(), href: "/login", name: "Login" },
-  { id: ncNanoId(), href: "/signup", name: "Signup" },
-];
 
 const templatesChildrenMenus: NavItemType[] = [
   {
@@ -174,67 +166,6 @@ export const NAVIGATION_DEMO_2: NavItemType[] = [
   //
   {
     id: ncNanoId(),
-    href: "/listing-stay",
-    name: "Listing pages",
-    children: [
-      { id: ncNanoId(), href: "/listing-stay", name: "Stay listings" },
-      {
-        id: ncNanoId(),
-        href: "/listing-stay-map",
-        name: "Stay listings (map)",
-      },
-      { id: ncNanoId(), href: "/listing-stay-detail", name: "Stay detail" },
-
-      //
-      {
-        id: ncNanoId(),
-        href: "/listing-experiences",
-        name: "Experiences listings",
-      },
-      {
-        id: ncNanoId(),
-        href: "/listing-experiences-map",
-        name: "Experiences (map)",
-      },
-      {
-        id: ncNanoId(),
-        href: "/listing-experiences-detail",
-        name: "Experiences detail",
-      },
-    ],
-  },
-  {
-    id: ncNanoId(),
-    href: "/listing-car",
-    name: "Listing pages",
-    children: [
-      { id: ncNanoId(), href: "/listing-car", name: "Cars listings" },
-      { id: ncNanoId(), href: "/listing-car-map", name: "Cars listings (map)" },
-      { id: ncNanoId(), href: "/listing-car-detail", name: "Car detail" },
-
-      //
-      {
-        id: ncNanoId(),
-        href: "/listing-real-estate",
-        name: "Real estate listings",
-      },
-      {
-        id: ncNanoId(),
-        href: "/listing-real-estate-map",
-        name: "Real estate (map)",
-      },
-      //
-      {
-        id: ncNanoId(),
-        href: "/listing-flights",
-        name: "Flights listings",
-      },
-    ],
-  },
-
-  //
-  {
-    id: ncNanoId(),
     href: "/author",
     name: "Templates",
     type: "dropdown",
@@ -242,11 +173,4 @@ export const NAVIGATION_DEMO_2: NavItemType[] = [
   },
 
   //
-  {
-    id: ncNanoId(),
-    href: "/blog",
-    name: "Other pages",
-    type: "dropdown",
-    children: otherPageChildMenus,
-  },
 ];
