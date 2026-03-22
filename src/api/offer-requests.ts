@@ -67,5 +67,19 @@ export async function createOfferRequest(
     body
   );
 
+  // Full JSON in terminal: add DEBUG_DUFFEL_OFFERS=1 to .env.local and watch `npm run dev` (API route) output.
+  // Use DEBUG_DUFFEL_OFFERS=all to log the whole offer_request object (not only offers[]).
+  if (process.env.DEBUG_DUFFEL_OFFERS === "1") {
+    console.log(
+      "[createOfferRequest] offers[] JSON:\n%s",
+      JSON.stringify(response.data.offers ?? [], null, 2)
+    );
+  } else if (process.env.DEBUG_DUFFEL_OFFERS === "all") {
+    console.log(
+      "[createOfferRequest] full response.data JSON:\n%s",
+      JSON.stringify(response.data, null, 2)
+    );
+  }
+
   return response.data;
 }

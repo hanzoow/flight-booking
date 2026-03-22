@@ -64,6 +64,8 @@ const FlightSearchSummaryBar: FC<FlightSearchSummaryBarProps> = ({
     setEditOpen(true);
   };
 
+  console.log('resultsCountresultsCount', resultsCount?.toString())
+
   const initialValues: FlightSearchInitialValues = {
     flyingFrom: from,
     flyingTo: to,
@@ -119,12 +121,6 @@ const FlightSearchSummaryBar: FC<FlightSearchSummaryBarProps> = ({
                 {isRoundTrip ? "Round-trip" : "One-way"}
               </span>
             </div>
-
-            {resultsCount !== undefined && (
-              <span className="text-neutral-400 dark:text-neutral-500 text-xs">
-                {resultsCount} result{resultsCount !== 1 ? "s" : ""}
-              </span>
-            )}
           </div>
 
           <button

@@ -109,6 +109,8 @@ const ListingFlightsPageClient: React.FC = () => {
       ? offers.length
       : undefined;
 
+  console.log('offersoffersoffers', offers.length)
+
   return (
     <FlightFlowPageShell pageClassName="nc-ListingFlightsPage">
       <FlightSearchSummaryBar

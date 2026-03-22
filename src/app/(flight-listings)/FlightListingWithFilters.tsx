@@ -8,6 +8,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Dialog, Transition } from "@headlessui/react";
@@ -34,6 +35,24 @@ import {
   buildPassengersOfferHrefFromListingQuery,
   copyListingParamsToQuery,
 } from "@/utils/flightListingSearchParams";
+import {
+  buildAirlineFilterStats,
+  buildLayoverFilterStats,
+  getCarrierLogoUrl,
+  offerMatchesAirlineFilter,
+  offerMatchesLayoverFilter,
+  type AirlineFilterRow,
+  type LayoverFilterRow,
+} from "@/utils/flightListingFilterStats";
+import Slider from "rc-slider";
+import {
+  getOutboundArrivalMinutes,
+  getOutboundDepartureMinutes,
+  isFullDayRange,
+  matchesTimeFilters,
+  TIME_OF_DAY_BUCKETS,
+  type TimeOfDayBucketId,
+} from "@/utils/flightTimeFilter";
 
 function formatMoney(amount: number, currency: string): string {
   try {
@@ -44,6 +63,132 @@ function formatMoney(amount: number, currency: string): string {
     }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(0)}`;
+  }
+}
+
+/** Main listing + round-trip group sorts */
+export type FlightListSortBy =
+  | "duration_asc"
+  | "duration_desc"
+  | "price_asc"
+  | "price_desc";
+
+function sortOffersForListing(list: Offer[], sortBy: FlightListSortBy): void {
+  switch (sortBy) {
+    case "price_asc":
+      list.sort(
+        (a, b) =>
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+      );
+      break;
+    case "price_desc":
+      list.sort(
+        (a, b) =>
+          parseFloat(b.total_amount) - parseFloat(a.total_amount) ||
+          a.id.localeCompare(b.id)
+      );
+      break;
+    case "duration_asc":
+      list.sort((a, b) => {
+        const da = parseIsoDurationToMinutes(a.slices[0]?.duration);
+        const db = parseIsoDurationToMinutes(b.slices[0]?.duration);
+        return (
+          da - db ||
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+        );
+      });
+      break;
+    case "duration_desc":
+      list.sort((a, b) => {
+        const da = parseIsoDurationToMinutes(a.slices[0]?.duration);
+        const db = parseIsoDurationToMinutes(b.slices[0]?.duration);
+        return (
+          db - da ||
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+        );
+      });
+      break;
+  }
+}
+
+function compareOutboundOfferGroups(
+  oa: Offer[],
+  ob: Offer[],
+  sortBy: FlightListSortBy
+): number {
+  switch (sortBy) {
+    case "price_asc":
+      return (
+        minTotalInOffers(oa) - minTotalInOffers(ob) ||
+        oa[0].id.localeCompare(ob[0].id)
+      );
+    case "price_desc":
+      return (
+        minTotalInOffers(ob) - minTotalInOffers(oa) ||
+        oa[0].id.localeCompare(ob[0].id)
+      );
+    case "duration_asc": {
+      const da = parseIsoDurationToMinutes(oa[0]?.slices[0]?.duration);
+      const db = parseIsoDurationToMinutes(ob[0]?.slices[0]?.duration);
+      return (
+        da - db ||
+        minTotalInOffers(oa) - minTotalInOffers(ob) ||
+        oa[0].id.localeCompare(ob[0].id)
+      );
+    }
+    case "duration_desc": {
+      const da = parseIsoDurationToMinutes(oa[0]?.slices[0]?.duration);
+      const db = parseIsoDurationToMinutes(ob[0]?.slices[0]?.duration);
+      return (
+        db - da ||
+        minTotalInOffers(oa) - minTotalInOffers(ob) ||
+        oa[0].id.localeCompare(ob[0].id)
+      );
+    }
+  }
+}
+
+function sortReturnOffersList(list: Offer[], sortBy: FlightListSortBy): void {
+  switch (sortBy) {
+    case "price_asc":
+      list.sort(
+        (a, b) =>
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+      );
+      break;
+    case "price_desc":
+      list.sort(
+        (a, b) =>
+          parseFloat(b.total_amount) - parseFloat(a.total_amount) ||
+          a.id.localeCompare(b.id)
+      );
+      break;
+    case "duration_asc":
+      list.sort((a, b) => {
+        const ra = parseIsoDurationToMinutes(a.slices[1]?.duration);
+        const rb = parseIsoDurationToMinutes(b.slices[1]?.duration);
+        return (
+          ra - rb ||
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+        );
+      });
+      break;
+    case "duration_desc":
+      list.sort((a, b) => {
+        const ra = parseIsoDurationToMinutes(a.slices[1]?.duration);
+        const rb = parseIsoDurationToMinutes(b.slices[1]?.duration);
+        return (
+          rb - ra ||
+          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
+          a.id.localeCompare(b.id)
+        );
+      });
+      break;
   }
 }
 
@@ -61,6 +206,86 @@ function formatShortDate(iso: string): string {
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 }
+
+/** Label for half-open range end (e.g. 1440 → 24:00) */
+function formatScheduleMinutes(m: number): string {
+  if (m >= 1440) return "24:00";
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+const TIME_BUCKET_IDS = Object.keys(TIME_OF_DAY_BUCKETS) as TimeOfDayBucketId[];
+
+const sliderTimeClassName =
+  "[&_.rc-slider-rail]:!h-2 [&_.rc-slider-rail]:!rounded-full [&_.rc-slider-rail]:!bg-neutral-200 dark:[&_.rc-slider-rail]:!bg-neutral-600 " +
+  "[&_.rc-slider-track]:!h-2 [&_.rc-slider-track]:!rounded-full [&_.rc-slider-track]:!bg-[#8B2942] " +
+  "[&_.rc-slider-handle]:!w-5 [&_.rc-slider-handle]:!h-5 [&_.rc-slider-handle]:!mt-[-6px] [&_.rc-slider-handle]:!border-2 [&_.rc-slider-handle]:!border-[#8B2942] [&_.rc-slider-handle]:!bg-white [&_.rc-slider-handle]:!shadow-md [&_.rc-slider-handle]:!opacity-100";
+
+const FlightTimesFilterBlock: FC<{
+  title: string;
+  rangeSubtitle: string;
+  selectedBuckets: Set<TimeOfDayBucketId>;
+  onToggleBucket: (id: TimeOfDayBucketId) => void;
+  range: [number, number];
+  onRangeChange: (v: [number, number]) => void;
+}> = ({
+  title,
+  rangeSubtitle,
+  selectedBuckets,
+  onToggleBucket,
+  range,
+  onRangeChange,
+}) => (
+    <div className="space-y-4">
+      <h3 className="text-xs font-bold tracking-wider text-neutral-800 dark:text-neutral-200 uppercase">
+        {title}
+      </h3>
+      <ul className="space-y-3">
+        {TIME_BUCKET_IDS.map((id) => {
+          const b = TIME_OF_DAY_BUCKETS[id];
+          const checked = selectedBuckets?.has?.(id);
+          return (
+            <li key={id}>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggleBucket(id)}
+                  className="h-5 w-5 rounded border-neutral-300 text-primary-6000 focus:ring-primary-500 dark:border-neutral-600 dark:bg-neutral-800 shrink-0"
+                />
+                <span className="flex-1 min-w-0 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                  {b.label}
+                </span>
+                <span className="text-sm text-neutral-400 dark:text-neutral-500 shrink-0">
+                  {b.sublabel}
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="pt-2 space-y-2">
+        <h4 className="text-xs font-bold tracking-wider text-neutral-800 dark:text-neutral-200 uppercase">
+          {rangeSubtitle}
+        </h4>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          {formatScheduleMinutes(range[0])} – {formatScheduleMinutes(range[1])}
+        </p>
+        <div className={`px-0.5 pt-1 pb-3 ${sliderTimeClassName}`}>
+          <Slider
+            range
+            allowCross={false}
+            min={0}
+            max={1440}
+            step={30}
+            value={range}
+            onChange={(v) => onRangeChange(v as [number, number])}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
 const StopFilterRows: FC<{
   stats: StopBucketStats[];
@@ -121,50 +346,211 @@ const PlaceholderSection: FC<{ title: string; children: React.ReactNode }> = ({
   </div>
 );
 
+const AirlineFilterRows: FC<{
+  rows: AirlineFilterRow[];
+  selected: Set<string>;
+  onToggle: (iata: string) => void;
+}> = ({ rows, selected, onToggle }) => {
+  if (rows?.length === 0) return null;
+  return (
+    <div className="pt-6 border-t border-neutral-200 dark:border-neutral-700 space-y-4">
+      <h3 className="text-xs font-bold tracking-wider text-neutral-800 dark:text-neutral-200 uppercase">
+        Airlines
+      </h3>
+      <ul className="space-y-4">
+        {rows?.map((row) => {
+          const checked = selected.has(row.iataCode);
+          const logoSrc =
+            row.logoSymbolUrl ?? getCarrierLogoUrl(row.iataCode);
+          return (
+            <li key={row.iataCode}>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(row.iataCode)}
+                  className="mt-1 h-5 w-5 rounded border-neutral-300 text-primary-6000 focus:ring-primary-500 dark:border-neutral-600 dark:bg-neutral-800 shrink-0"
+                />
+                <div className="flex-1 min-w-0 pr-2">
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100 block leading-snug">
+                    {row.name}
+                  </span>
+                  {row.minTotalAmount != null && (
+                    <span className="text-sm mt-0.5 block">
+                      <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                        {formatMoney(row.minTotalAmount, row.currency)}
+                      </span>
+                      <span className="text-neutral-500 dark:text-neutral-400 font-normal">
+                        {" "}
+                        ({row.count} flight{row.count !== 1 ? "s" : ""})
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <div className="shrink-0 w-[72px] h-8 flex items-center justify-end">
+                  <Image
+                    src={logoSrc}
+                    alt=""
+                    width={72}
+                    height={28}
+                    className="max-h-7 w-auto max-w-[72px] object-contain object-right"
+                    unoptimized
+                  />
+                </div>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
+
+const LayoverFilterRows: FC<{
+  rows: LayoverFilterRow[];
+  selected: Set<string>;
+  onToggle: (iata: string) => void;
+}> = ({ rows, selected, onToggle }) => {
+  if (rows?.length === 0) return null;
+  return (
+    <div className="pt-6 border-t border-neutral-200 dark:border-neutral-700 space-y-4">
+      <h3 className="text-xs font-bold tracking-wider text-neutral-800 dark:text-neutral-200 uppercase">
+        Layover airport
+      </h3>
+      <ul className="space-y-4">
+        {rows?.map((row) => {
+          const checked = selected.has(row.iataCode);
+          return (
+            <li key={row.iataCode}>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(row.iataCode)}
+                  className="mt-1 h-5 w-5 rounded border-neutral-300 text-primary-6000 focus:ring-primary-500 dark:border-neutral-600 dark:bg-neutral-800 shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100 block text-sm leading-snug">
+                    {row.label}
+                  </span>
+                  {row.minTotalAmount != null && (
+                    <span className="text-sm mt-0.5 block">
+                      <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                        {formatMoney(row.minTotalAmount, row.currency)}
+                      </span>
+                      <span className="text-neutral-500 dark:text-neutral-400 font-normal">
+                        {" "}
+                        ({row.count} flight{row.count !== 1 ? "s" : ""})
+                      </span>
+                    </span>
+                  )}
+                </div>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
+
 const FiltersPanel: FC<{
   stats: StopBucketStats[];
   selectedStops: Set<StopBucketId>;
   onToggleStop: (id: StopBucketId) => void;
+  departureTimeBuckets: Set<TimeOfDayBucketId>;
+  onToggleDepartureTimeBucket: (id: TimeOfDayBucketId) => void;
+  departureTimeRange: [number, number];
+  onDepartureTimeRangeChange: (v: [number, number]) => void;
+  arrivalTimeBuckets: Set<TimeOfDayBucketId>;
+  onToggleArrivalTimeBucket: (id: TimeOfDayBucketId) => void;
+  arrivalTimeRange: [number, number];
+  onArrivalTimeRangeChange: (v: [number, number]) => void;
+  airlineRows: AirlineFilterRow[];
+  selectedAirlines: Set<string>;
+  onToggleAirline: (iata: string) => void;
+  layoverRows: LayoverFilterRow[];
+  selectedLayovers: Set<string>;
+  onToggleLayover: (iata: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-}> = ({ stats, selectedStops, onToggleStop, searchQuery, onSearchChange }) => (
-  <div className="space-y-0">
-    <div className="relative mb-6">
-      <i className="las la-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-lg" />
-      <input
-        type="search"
-        placeholder="Search"
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
+}> = ({
+  stats,
+  selectedStops,
+  onToggleStop,
+  departureTimeBuckets,
+  onToggleDepartureTimeBucket,
+  departureTimeRange,
+  onDepartureTimeRangeChange,
+  arrivalTimeBuckets,
+  onToggleArrivalTimeBucket,
+  arrivalTimeRange,
+  onArrivalTimeRangeChange,
+  airlineRows,
+  selectedAirlines,
+  onToggleAirline,
+  layoverRows,
+  selectedLayovers,
+  onToggleLayover,
+  searchQuery,
+  onSearchChange,
+}) => (
+    <div className="space-y-0">
+      <div className="relative mb-6">
+        <i className="las la-search absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-lg" />
+        <input
+          type="search"
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400"
+        />
+      </div>
+
+      <StopFilterRows
+        stats={stats}
+        selected={selectedStops}
+        onToggle={onToggleStop}
+      />
+
+      <div className="pt-6 border-t border-neutral-200 dark:border-neutral-700 space-y-8">
+        <FlightTimesFilterBlock
+          title="Departure times"
+          rangeSubtitle="Departure time range"
+          selectedBuckets={departureTimeBuckets}
+          onToggleBucket={onToggleDepartureTimeBucket}
+          range={departureTimeRange}
+          onRangeChange={onDepartureTimeRangeChange}
+        />
+        <FlightTimesFilterBlock
+          title="Arrival times"
+          rangeSubtitle="Arrival time range"
+          selectedBuckets={arrivalTimeBuckets}
+          onToggleBucket={onToggleArrivalTimeBucket}
+          range={arrivalTimeRange}
+          onRangeChange={onArrivalTimeRangeChange}
+        />
+      </div>
+
+      <PlaceholderSection title="Baggage">
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          Filter by baggage allowance — coming soon.
+        </p>
+      </PlaceholderSection>
+
+      <AirlineFilterRows
+        rows={airlineRows}
+        selected={selectedAirlines}
+        onToggle={onToggleAirline}
+      />
+
+      <LayoverFilterRows
+        rows={layoverRows}
+        selected={selectedLayovers}
+        onToggle={onToggleLayover}
       />
     </div>
-
-    <StopFilterRows
-      stats={stats}
-      selected={selectedStops}
-      onToggle={onToggleStop}
-    />
-
-    <PlaceholderSection title="Baggage">
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        Filter by baggage allowance — coming soon.
-      </p>
-    </PlaceholderSection>
-
-    <PlaceholderSection title="Airlines">
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        Filter by airline — coming soon.
-      </p>
-    </PlaceholderSection>
-
-    <PlaceholderSection title="Layover airport">
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">
-        Filter by layover airport — coming soon.
-      </p>
-    </PlaceholderSection>
-  </div>
-);
+  );
 
 const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
   className = "",
@@ -181,7 +567,25 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
   const [selectedStops, setSelectedStops] = useState<Set<StopBucketId>>(
     new Set()
   );
-  const [sortBy, setSortBy] = useState<"duration" | "price">("duration");
+  const [selectedAirlines, setSelectedAirlines] = useState<Set<string>>(
+    new Set()
+  );
+  const [selectedLayovers, setSelectedLayovers] = useState<Set<string>>(
+    new Set()
+  );
+  const [departureTimeBuckets, setDepartureTimeBuckets] = useState<
+    Set<TimeOfDayBucketId>
+  >(new Set());
+  const [arrivalTimeBuckets, setArrivalTimeBuckets] = useState<
+    Set<TimeOfDayBucketId>
+  >(new Set());
+  const [departureTimeRange, setDepartureTimeRange] = useState<
+    [number, number]
+  >([0, 1440]);
+  const [arrivalTimeRange, setArrivalTimeRange] = useState<[number, number]>([
+    0, 1440,
+  ]);
+  const [sortBy, setSortBy] = useState<FlightListSortBy>("duration_asc");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOutboundKey, setSelectedOutboundKey] = useState<string | null>(
@@ -189,6 +593,14 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
   );
 
   const stopStats = useMemo(() => buildStopsFilterStats(offers), [offers]);
+  const airlineRows = useMemo(
+    () => buildAirlineFilterStats(offers),
+    [offers]
+  );
+  const layoverRows = useMemo(
+    () => buildLayoverFilterStats(offers),
+    [offers]
+  );
 
   const toggleStop = useCallback((id: StopBucketId) => {
     setSelectedStops((prev) => {
@@ -199,12 +611,87 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
     });
   }, []);
 
+  const toggleAirline = useCallback((iata: string) => {
+    setSelectedAirlines((prev) => {
+      const next = new Set(prev);
+      if (next.has(iata)) next.delete(iata);
+      else next.add(iata);
+      return next;
+    });
+  }, []);
+
+  const toggleLayover = useCallback((iata: string) => {
+    setSelectedLayovers((prev) => {
+      const next = new Set(prev);
+      if (next.has(iata)) next.delete(iata);
+      else next.add(iata);
+      return next;
+    });
+  }, []);
+
+  const toggleDepartureTimeBucket = useCallback((id: TimeOfDayBucketId) => {
+    setDepartureTimeBuckets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleArrivalTimeBucket = useCallback((id: TimeOfDayBucketId) => {
+    setArrivalTimeBuckets((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const departureTimeFilterActive = useMemo(
+    () =>
+      departureTimeBuckets.size > 0 || !isFullDayRange(departureTimeRange),
+    [departureTimeBuckets, departureTimeRange]
+  );
+  const arrivalTimeFilterActive = useMemo(
+    () => arrivalTimeBuckets.size > 0 || !isFullDayRange(arrivalTimeRange),
+    [arrivalTimeBuckets, arrivalTimeRange]
+  );
+
   const filteredAndSortedOffers = useMemo(() => {
+    console.log('filteredAndSortedOffersfilteredAndSortedOffers', offers.length)
     let list = [...offers];
 
     if (selectedStops.size > 0) {
       list = list.filter((o) =>
         selectedStops.has(getStopBucketId(getOutboundStopCount(o)))
+      );
+    }
+
+    if (selectedAirlines.size > 0) {
+      list = list.filter((o) => offerMatchesAirlineFilter(o, selectedAirlines));
+    }
+
+    if (selectedLayovers.size > 0) {
+      list = list.filter((o) => offerMatchesLayoverFilter(o, selectedLayovers));
+    }
+
+    if (departureTimeFilterActive) {
+      list = list.filter((o) =>
+        matchesTimeFilters(
+          getOutboundDepartureMinutes(o),
+          departureTimeBuckets,
+          departureTimeRange
+        )
+      );
+    }
+
+    if (arrivalTimeFilterActive) {
+      list = list.filter((o) =>
+        matchesTimeFilters(
+          getOutboundArrivalMinutes(o),
+          arrivalTimeBuckets,
+          arrivalTimeRange
+        )
       );
     }
 
@@ -231,22 +718,25 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
       });
     }
 
-    if (sortBy === "price") {
-      list.sort(
-        (a, b) =>
-          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
-          a.id.localeCompare(b.id)
-      );
-    } else {
-      list.sort((a, b) => {
-        const da = parseIsoDurationToMinutes(a.slices[0]?.duration);
-        const db = parseIsoDurationToMinutes(b.slices[0]?.duration);
-        return da - db || parseFloat(a.total_amount) - parseFloat(b.total_amount);
-      });
-    }
+    sortOffersForListing(list, sortBy);
+
+    console.log('listlistlistlistlist123132', list)
 
     return list;
-  }, [offers, selectedStops, sortBy, searchQuery]);
+  }, [
+    offers,
+    selectedStops,
+    selectedAirlines,
+    selectedLayovers,
+    departureTimeFilterActive,
+    departureTimeBuckets,
+    departureTimeRange,
+    arrivalTimeFilterActive,
+    arrivalTimeBuckets,
+    arrivalTimeRange,
+    sortBy,
+    searchQuery,
+  ]);
 
   const useRoundTripWizard =
     tripType === "roundTrip" && offers.some(isRoundTripOffer);
@@ -255,21 +745,9 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
     if (!useRoundTripWizard) return [];
     const map = groupOffersByOutbound(filteredAndSortedOffers);
     const entries = Array.from(map.entries());
-    entries.sort(([, oa], [, ob]) => {
-      if (sortBy === "price") {
-        return (
-          minTotalInOffers(oa) - minTotalInOffers(ob) ||
-          oa[0].id.localeCompare(ob[0].id)
-        );
-      }
-      const da = parseIsoDurationToMinutes(oa[0]?.slices[0]?.duration);
-      const db = parseIsoDurationToMinutes(ob[0]?.slices[0]?.duration);
-      return (
-        da - db ||
-        minTotalInOffers(oa) - minTotalInOffers(ob) ||
-        oa[0].id.localeCompare(ob[0].id)
-      );
-    });
+    entries.sort(([, oa], [, ob]) =>
+      compareOutboundOfferGroups(oa, ob, sortBy)
+    );
     return entries;
   }, [filteredAndSortedOffers, sortBy, useRoundTripWizard]);
 
@@ -288,23 +766,7 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
   const returnOffersSorted = useMemo(() => {
     if (!useRoundTripWizard || !selectedOutboundKey) return [];
     let list = [...selectedGroupOffers];
-    if (sortBy === "price") {
-      list.sort(
-        (a, b) =>
-          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
-          a.id.localeCompare(b.id)
-      );
-    } else {
-      list.sort((a, b) => {
-        const ra = parseIsoDurationToMinutes(a.slices[1]?.duration);
-        const rb = parseIsoDurationToMinutes(b.slices[1]?.duration);
-        return (
-          ra - rb ||
-          parseFloat(a.total_amount) - parseFloat(b.total_amount) ||
-          a.id.localeCompare(b.id)
-        );
-      });
-    }
+    sortReturnOffersList(list, sortBy);
     return list;
   }, [
     selectedGroupOffers,
@@ -329,12 +791,32 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
     [selectedGroupOffers]
   );
 
-  const activeFilterCount = selectedStops.size + (searchQuery.trim() ? 1 : 0);
+  const activeFilterCount =
+    selectedStops.size +
+    selectedAirlines.size +
+    selectedLayovers.size +
+    (departureTimeFilterActive ? 1 : 0) +
+    (arrivalTimeFilterActive ? 1 : 0) +
+    (searchQuery.trim() ? 1 : 0);
 
   const filterPanelProps = {
     stats: stopStats,
     selectedStops,
     onToggleStop: toggleStop,
+    departureTimeBuckets,
+    onToggleDepartureTimeBucket: toggleDepartureTimeBucket,
+    departureTimeRange,
+    onDepartureTimeRangeChange: setDepartureTimeRange,
+    arrivalTimeBuckets,
+    onToggleArrivalTimeBucket: toggleArrivalTimeBucket,
+    arrivalTimeRange,
+    onArrivalTimeRangeChange: setArrivalTimeRange,
+    airlineRows,
+    selectedAirlines,
+    onToggleAirline: toggleAirline,
+    layoverRows,
+    selectedLayovers,
+    onToggleLayover: toggleLayover,
     searchQuery,
     onSearchChange: setSearchQuery,
   };
@@ -407,12 +889,14 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
                 id="flight-sort"
                 value={sortBy}
                 onChange={(e) =>
-                  setSortBy(e.target.value as "duration" | "price")
+                  setSortBy(e.target.value as FlightListSortBy)
                 }
                 className="rounded-lg border border-neutral-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-sm py-2 pl-3 pr-8 text-neutral-900 dark:text-neutral-100 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="duration">Shortest duration</option>
-                <option value="price">Lowest price</option>
+                <option value="duration_asc">Shortest duration</option>
+                <option value="duration_desc">Longest duration</option>
+                <option value="price_asc">Lowest price</option>
+                <option value="price_desc">Highest price</option>
               </select>
             </div>
           </div>
@@ -496,9 +980,9 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
                 {selectedDepartureRepresentative?.slices[1]?.segments[0]
                   ?.departing_at
                   ? formatShortDate(
-                      selectedDepartureRepresentative.slices[1].segments[0]
-                        .departing_at
-                    )
+                    selectedDepartureRepresentative.slices[1].segments[0]
+                      .departing_at
+                  )
                   : ""}
               </span>
             </div>
@@ -530,6 +1014,12 @@ const FlightListingWithFilters: FC<FlightListingWithFiltersProps> = ({
                   type="button"
                   onClick={() => {
                     setSelectedStops(new Set());
+                    setSelectedAirlines(new Set());
+                    setSelectedLayovers(new Set());
+                    setDepartureTimeBuckets(new Set());
+                    setArrivalTimeBuckets(new Set());
+                    setDepartureTimeRange([0, 1440]);
+                    setArrivalTimeRange([0, 1440]);
                     setSearchQuery("");
                   }}
                   className="mt-3 text-sm text-primary-6000 font-medium hover:underline"
